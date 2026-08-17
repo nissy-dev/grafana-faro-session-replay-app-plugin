@@ -1,0 +1,7 @@
+packages:
+  - examples/demo-app
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
