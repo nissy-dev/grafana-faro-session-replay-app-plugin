@@ -1,0 +1,34 @@
+services:
+  grafana:
+    extends:
+      file: .config/docker-compose-base.yaml
+      service: grafana
+    depends_on:
+      - loki
+
+  loki:
+    image: grafana/loki:3.5.5
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - 3100:3100
+
+  alloy:
+    image: grafana/alloy:v1.18.1
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    depends_on:
+      - loki
+    ports:
+      - 12347:12347
+    volumes:
+      - ./examples/alloy/config.alloy:/etc/alloy/config.alloy:ro
+
+  demo-app:
+    build:
+      context: ./examples/demo-app
+    depends_on:
+      - alloy
+    ports:
+      - 4173:4173
