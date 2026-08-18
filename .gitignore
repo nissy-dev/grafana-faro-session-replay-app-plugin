@@ -42,6 +42,9 @@ ci/
 /playwright/.cache/
 /playwright/.auth/
 
+# Snapshots and logs written by the Playwright MCP browser
+/.playwright-mcp/
+
 # Editor
 .idea
 
