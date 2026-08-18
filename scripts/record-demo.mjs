@@ -8,8 +8,12 @@
  * session in the plugin while recording the browser. Outputs a WebM video and a
  * poster screenshot into docs/media/.
  */
+import { execFile as execFileCallback } from 'node:child_process';
 import { mkdir, readdir, rename, rm } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import { chromium } from '@playwright/test';
+
+const execFile = promisify(execFileCallback);
 
 const GRAFANA_URL = process.env.GRAFANA_URL ?? 'http://localhost:3000';
 const DEMO_URL = process.env.DEMO_URL ?? 'http://localhost:4173';
@@ -127,8 +131,34 @@ async function captureReplay() {
 
   const recorded = await video?.path();
   if (recorded) {
-    await rm(`${OUTPUT_DIR}/session-replay.webm`, { force: true });
-    await rename(recorded, `${OUTPUT_DIR}/session-replay.webm`);
-    console.log(`wrote ${OUTPUT_DIR}/session-replay.webm`);
+    await toMp4(recorded);
   }
+}
+
+/**
+ * Playwright only records WebM, which GitHub will not play inline, so transcode to H.264.
+ * `-movflags +faststart` puts the index up front so the player can start before the whole
+ * file has downloaded.
+ */
+async function toMp4(recorded) {
+  const output = `${OUTPUT_DIR}/session-replay.mp4`;
+  const webm = `${OUTPUT_DIR}/session-replay.webm`;
+  await rm(webm, { force: true });
+  await rename(recorded, webm);
+
+  try {
+    await execFile('ffmpeg', [
+      ...['-y', '-hide_banner', '-loglevel', 'error'],
+      ...['-i', webm],
+      ...['-c:v', 'libx264', '-profile:v', 'high', '-pix_fmt', 'yuv420p'],
+      ...['-crf', '26', '-preset', 'slow', '-movflags', '+faststart', '-an'],
+      output,
+    ]);
+  } catch (error) {
+    console.error(`kept ${webm}: could not run ffmpeg to transcode it (${error.message})`);
+    return;
+  }
+
+  await rm(webm, { force: true });
+  console.log(`wrote ${output}`);
 }
