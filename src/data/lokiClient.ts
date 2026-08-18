@@ -1,6 +1,8 @@
 import { from, fromEvent, lastValueFrom, takeUntil } from 'rxjs';
 import { CoreApp, dateTime, type DataFrame, type DataQueryRequest } from '@grafana/data';
-import { getDataSourceInstance } from '@grafana/runtime/unstable';
+// Its replacement, `getDataSourceInstance` from `@grafana/runtime/unstable`, only exists in
+// Grafana 13.1+, while this plugin supports `>=13.0.0`.
+import { getDataSourceSrv } from '@grafana/runtime';
 
 interface LokiQuery {
   refId: string;
@@ -32,7 +34,8 @@ export const executeLokiQuery: QueryExecutor = async (options) => {
     throw new DOMException('The Loki query was aborted', 'AbortError');
   }
 
-  const datasource = await getDataSourceInstance(options.datasourceUid);
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- see the import comment
+  const datasource = await getDataSourceSrv().get(options.datasourceUid);
   const request = createLokiRequest(options);
   const abort$ = options.signal ? fromEvent(options.signal, 'abort') : undefined;
   const response$ = from(datasource.query(request));
