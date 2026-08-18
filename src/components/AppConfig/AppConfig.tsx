@@ -98,6 +98,9 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
             width={20}
             type="number"
             min={1}
+            // `Field` labels its child through `htmlFor`, so the input needs an explicit id
+            // to carry an accessible name on Grafana versions that do not generate one.
+            id="config-default-time-range-hours"
             name="defaultTimeRangeHours"
             data-testid={testIds.appConfig.defaultTimeRangeHours}
             value={state.defaultTimeRangeHours}
@@ -114,6 +117,7 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
             width={20}
             type="number"
             min={100}
+            id="config-max-lines"
             name="maxLines"
             data-testid={testIds.appConfig.maxLines}
             value={state.maxLines}

@@ -106,6 +106,7 @@ const SessionsPage = ({ settings }: SessionsPageProps) => {
       <div className={styles.filters}>
         <Field label="Search">
           <Input
+            id="sessions-filter-search"
             placeholder="Session or user"
             value={filters.search ?? ''}
             onChange={(event) => {
@@ -116,6 +117,7 @@ const SessionsPage = ({ settings }: SessionsPageProps) => {
         </Field>
         <Field label="Application">
           <Input
+            id="sessions-filter-app"
             placeholder="app_name"
             value={filters.app ?? ''}
             onChange={(event) => {
@@ -126,6 +128,7 @@ const SessionsPage = ({ settings }: SessionsPageProps) => {
         </Field>
         <Field label="Environment">
           <Input
+            id="sessions-filter-environment"
             placeholder="production"
             value={filters.environment ?? ''}
             onChange={(event) => {
@@ -136,6 +139,7 @@ const SessionsPage = ({ settings }: SessionsPageProps) => {
         </Field>
         <Field label="Lookback hours">
           <Input
+            id="sessions-filter-hours"
             type="number"
             min={1}
             value={hours}
