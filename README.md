@@ -11,9 +11,11 @@ this plugin covers the same ground for recordings you keep in your own Loki.
 Replaying a session recorded by the [example stack](examples/README.md): the feed on the
 right follows playback, and rows carrying a trace ID link into Tempo.
 
-<video src="docs/media/session-replay.mp4" poster="docs/media/session-replay.png" controls muted playsinline width="900">
-  <a href="docs/media/session-replay.mp4">Watch the session replay demo</a>
-</video>
+
+
+https://github.com/user-attachments/assets/88e53873-7b41-4123-88c6-6879e8858f55
+
+
 
 Regenerate it with `node scripts/record-demo.mjs` while the example stack is running.
 The script records WebM and transcodes it with `ffmpeg`, which GitHub needs to play
