@@ -6,16 +6,15 @@ and stored in Loki. Grafana Cloud Frontend Observability offers
 [session replay as a hosted feature](https://grafana.com/blog/visual-playback-of-the-user-journey-introducing-session-replay-in-grafana-cloud-frontend-observability/);
 this plugin covers the same ground for recordings you keep in your own Loki.
 
+![](./docs/media/session-replay.png)
+
+
 ## Demo
 
 Replaying a session recorded by the [example stack](examples/README.md): the feed on the
 right follows playback, and rows carrying a trace ID link into Tempo.
 
-
-
 https://github.com/user-attachments/assets/88e53873-7b41-4123-88c6-6879e8858f55
-
-
 
 Regenerate it with `node scripts/record-demo.mjs` while the example stack is running.
 The script records WebM and transcodes it with `ffmpeg`, which GitHub needs to play
