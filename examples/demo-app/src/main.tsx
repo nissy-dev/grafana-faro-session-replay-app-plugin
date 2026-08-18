@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Check, Minus, Plus, Search, ShoppingBag, Sparkles, Trash2, X } from 'lucide-react';
-import { faro } from './faro';
+import { faro, withSpan } from './faro';
 import './styles.css';
+
+interface InventoryItem {
+  id: string;
+  inStock: number;
+}
+
+const loadInventory = (reason: string) =>
+  withSpan(`load inventory (${reason})`, async () => {
+    const response = await fetch('/api/inventory.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Inventory request failed with ${response.status}`);
+    }
+
+    const { items } = (await response.json()) as { items: InventoryItem[] };
+    faro.api.pushEvent('demo.inventory.loaded', { reason, items: String(items.length) });
+    return items;
+  });
 
 const products = [
   {
@@ -36,6 +53,13 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [email, setEmail] = useState('');
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+
+  useEffect(() => {
+    loadInventory('page_view')
+      .then(setInventory)
+      .catch((error: unknown) => console.error('Inventory lookup failed', error));
+  }, []);
 
   const visibleProducts = products.filter((product) => product.name.toLowerCase().includes(query.toLowerCase()));
   const itemCount = Object.values(cart).reduce((sum, value) => sum + value, 0);
@@ -53,9 +77,19 @@ function App() {
   };
 
   const checkout = () => {
-    console.error('Demo checkout inventory conflict', { cartItems: itemCount });
-    faro.api.pushEvent('demo.checkout.failed', { reason: 'inventory_conflict', cartItems: String(itemCount) });
-    setNotice('Demo checkout paused: one item needs a stock check');
+    // The checkout span groups the inventory fetch and the failure event under one trace.
+    void withSpan('demo checkout', async () => {
+      const items = await loadInventory('checkout').catch(() => inventory);
+      const soldOut = items.filter((item) => cart[item.id] && item.inStock === 0);
+
+      console.error('Demo checkout inventory conflict', { cartItems: itemCount });
+      faro.api.pushEvent('demo.checkout.failed', {
+        reason: 'inventory_conflict',
+        cartItems: String(itemCount),
+        soldOut: soldOut.map(({ id }) => id).join(',') || 'none',
+      });
+      setNotice('Demo checkout paused: one item needs a stock check');
+    });
   };
 
   return (

@@ -7,5 +7,6 @@ apps:
     disabled: false
     jsonData:
       lokiDatasourceUid: local-loki
+      tempoDatasourceUid: local-tempo
       defaultTimeRangeHours: 24
       maxLines: 5000

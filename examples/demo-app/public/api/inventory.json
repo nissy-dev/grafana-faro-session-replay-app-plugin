@@ -1,0 +1,8 @@
+{
+  "updatedAt": "2026-08-18T00:00:00Z",
+  "items": [
+    { "id": "field-pack", "inStock": 12 },
+    { "id": "trail-bottle", "inStock": 40 },
+    { "id": "camp-light", "inStock": 0 }
+  ]
+}

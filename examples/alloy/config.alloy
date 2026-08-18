@@ -13,7 +13,8 @@ faro.receiver "demo" {
   }
 
   output {
-    logs = [loki.process.faro.receiver]
+    logs   = [loki.process.faro.receiver]
+    traces = [otelcol.processor.batch.faro.input]
   }
 
   extra_log_labels = {
@@ -42,5 +43,21 @@ loki.process "faro" {
 loki.write "default" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+otelcol.processor.batch "faro" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
   }
 }
