@@ -27,7 +27,7 @@ describe('Components/App', () => {
 
   test('renders the Loki configuration prompt when the plugin is not configured', async () => {
     const { queryByText } = render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App {...props} />
       </MemoryRouter>
     );
