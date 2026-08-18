@@ -2,7 +2,20 @@
 
 Grafana app plugin for browsing and replaying browser sessions recorded by
 [`@grafana/faro-instrumentation-replay`](https://github.com/grafana/faro-web-sdk/tree/main/experimental/instrumentation-replay)
-and stored in Loki.
+and stored in Loki. Grafana Cloud Frontend Observability offers
+[session replay as a hosted feature](https://grafana.com/blog/visual-playback-of-the-user-journey-introducing-session-replay-in-grafana-cloud-frontend-observability/);
+this plugin covers the same ground for recordings you keep in your own Loki.
+
+## Demo
+
+Replaying a session recorded by the [example stack](examples/README.md): the feed on the
+right follows playback, and rows carrying a trace ID link into Tempo.
+
+<video src="docs/media/session-replay.webm" poster="docs/media/session-replay.png" controls muted playsinline width="900">
+  <a href="docs/media/session-replay.webm">Watch the session replay demo</a>
+</video>
+
+Regenerate it with `node scripts/record-demo.mjs` while the example stack is running.
 
 ## Features
 
@@ -71,16 +84,16 @@ initializeFaro({
 Configure Alloy's `faro.receiver` logs output to write to Loki. The plugin expects
 JSON lines with these canonical fields:
 
-| Field | Purpose |
-| --- | --- |
-| `kind` | `event`, `log`, `exception`, or `measurement`; intended as a low-cardinality Loki label |
-| `event_name` | `faro.session_recording.started` or `faro.session_recording.event` |
-| `session_id` | Faro session ID; keep this as a JSON field, not a Loki stream label |
-| `event_data_event` | JSON-encoded `@grafana/rrweb-types` event |
-| `timestamp` | Original browser telemetry timestamp |
-| `app_name`, `app_environment` | Session list filters and metadata |
-| `user_id`, `user_email` | Optional user metadata |
-| `traceID` | Optional Tempo correlation |
+| Field                         | Purpose                                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `kind`                        | `event`, `log`, `exception`, or `measurement`; intended as a low-cardinality Loki label |
+| `event_name`                  | `faro.session_recording.started` or `faro.session_recording.event`                      |
+| `session_id`                  | Faro session ID; keep this as a JSON field, not a Loki stream label                     |
+| `event_data_event`            | JSON-encoded `@grafana/rrweb-types` event                                               |
+| `timestamp`                   | Original browser telemetry timestamp                                                    |
+| `app_name`, `app_environment` | Session list filters and metadata                                                       |
+| `user_id`, `user_email`       | Optional user metadata                                                                  |
+| `traceID`                     | Optional Tempo correlation                                                              |
 
 The session list uses `faro.session_recording.started` markers. Replay detail
 queries `faro.session_recording.event`, splits saturated Loki time windows, parses
