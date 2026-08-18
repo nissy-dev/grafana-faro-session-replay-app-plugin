@@ -1,6 +1,6 @@
 import { FieldType, toDataFrame } from '@grafana/data';
 import { EventType } from '@grafana/rrweb-types';
-import { parseReplayEvents, parseSessionLogs, parseSessionSummaries } from './faroFrames';
+import { parseReplayEvents, parseSessionEvents, parseSessionSummaries } from './faroFrames';
 
 const frame = (lines: string[], timestamps: number[] = lines.map((_, index) => index + 1)) =>
   toDataFrame({
@@ -41,13 +41,37 @@ describe('Faro Loki frame parsing', () => {
     expect(result.hasFullSnapshot).toBe(true);
   });
 
-  test('normalizes correlated logs and trace IDs', () => {
-    const result = parseSessionLogs([
-      frame([
-        JSON.stringify({ kind: 'exception', message: 'Failed', traceID: 'abc', timestamp: '2026-01-01T00:00:00Z' }),
-      ]),
+  test('normalizes correlated signals and trace IDs', () => {
+    const result = parseSessionEvents([
+      frame(
+        [
+          JSON.stringify({
+            kind: 'event',
+            event_name: 'demo.products.loaded',
+            event_data_count: '3',
+            traceID: 'abc',
+            spanID: 'def',
+            timestamp: '2026-01-01T00:00:02Z',
+          }),
+          JSON.stringify({
+            kind: 'exception',
+            type: 'TypeError',
+            value: 'Failed to fetch',
+            timestamp: '2026-01-01T00:00:01Z',
+          }),
+          JSON.stringify({ kind: 'log', message: 'Product added', level: 'info', timestamp: '2026-01-01T00:00:00Z' }),
+        ],
+        [3, 2, 1]
+      ),
     ]);
 
-    expect(result[0]).toMatchObject({ kind: 'exception', message: 'Failed', traceId: 'abc' });
+    expect(result.map(({ kind }) => kind)).toEqual(['log', 'exception', 'event']);
+    expect(result[1]).toMatchObject({ message: 'TypeError: Failed to fetch' });
+    expect(result[2]).toMatchObject({
+      name: 'demo.products.loaded',
+      message: 'count=3',
+      traceId: 'abc',
+      spanId: 'def',
+    });
   });
 });

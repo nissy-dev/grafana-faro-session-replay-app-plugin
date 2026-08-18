@@ -5,15 +5,15 @@ import { Alert, Button, Spinner, useStyles2 } from '@grafana/ui';
 import { useParams, useSearchParams } from 'react-router-dom';
 import SessionReplayPlayer, { type SeekRequest } from '../components/SessionReplayPlayer/SessionReplayPlayer';
 import SessionTimeline from '../components/SessionTimeline/SessionTimeline';
-import { parseReplayEvents, parseSessionLogs } from '../data/faroFrames';
+import { parseReplayEvents, parseSessionEvents } from '../data/faroFrames';
 import { executeLokiQuery, fetchLokiFramesByTimeWindows } from '../data/lokiClient';
-import { buildReplayQuery, buildSessionLogsQuery } from '../data/lokiQueries';
+import { buildReplayQuery, buildSessionEventsQuery } from '../data/lokiQueries';
 import {
   DEFAULT_MAX_LINES,
   DEFAULT_TIME_RANGE_HOURS,
   type AppPluginSettings,
   type ReplayParseResult,
-  type SessionLog,
+  type SessionEvent,
 } from '../types';
 
 const SessionDetailPage = ({ settings }: { settings: AppPluginSettings }) => {
@@ -21,7 +21,7 @@ const SessionDetailPage = ({ settings }: { settings: AppPluginSettings }) => {
   const { sessionId = '' } = useParams();
   const [searchParams] = useSearchParams();
   const [replay, setReplay] = useState<ReplayParseResult>();
-  const [logs, setLogs] = useState<SessionLog[]>([]);
+  const [events, setEvents] = useState<SessionEvent[]>([]);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [seekRequest, setSeekRequest] = useState<SeekRequest>();
   const [error, setError] = useState<string>();
@@ -48,11 +48,11 @@ const SessionDetailPage = ({ settings }: { settings: AppPluginSettings }) => {
     };
     Promise.all([
       fetchLokiFramesByTimeWindows({ ...options, expr: buildReplayQuery(sessionId) }),
-      executeLokiQuery({ ...options, expr: buildSessionLogsQuery(sessionId) }),
+      executeLokiQuery({ ...options, expr: buildSessionEventsQuery(sessionId) }),
     ])
-      .then(([replayFrames, logFrames]) => {
+      .then(([replayFrames, eventFrames]) => {
         setReplay(parseReplayEvents(replayFrames));
-        setLogs(parseSessionLogs(logFrames));
+        setEvents(parseSessionEvents(eventFrames));
       })
       .catch((queryError: unknown) => {
         if (!(queryError instanceof DOMException && queryError.name === 'AbortError')) {
@@ -95,7 +95,7 @@ const SessionDetailPage = ({ settings }: { settings: AppPluginSettings }) => {
         </div>
         {replay && (
           <div className={styles.metadata}>
-            {replay.events.length} events · {logs.length} logs
+            {replay.events.length} replay events · {events.length} session events
           </div>
         )}
       </div>
@@ -116,21 +116,25 @@ const SessionDetailPage = ({ settings }: { settings: AppPluginSettings }) => {
           {replay.discardedLines} malformed event lines could not be decoded.
         </Alert>
       ) : null}
-      {!loading && replay?.hasFullSnapshot && (
-        <SessionReplayPlayer events={replay.events} seekRequest={seekRequest} onTimeChange={setCurrentOffset} />
-      )}
-
       {!loading && replay && (
-        <section className={styles.timeline}>
-          <h2>Logs and exceptions</h2>
-          <SessionTimeline
-            logs={logs}
-            replayStart={replayStart}
-            currentOffset={currentOffset}
-            tempoDatasourceUid={settings.tempoDatasourceUid}
-            onSeek={(offset) => setSeekRequest({ id: Date.now(), offset })}
-          />
-        </section>
+        <div className={styles.workspace}>
+          {replay.hasFullSnapshot && (
+            <SessionReplayPlayer events={replay.events} seekRequest={seekRequest} onTimeChange={setCurrentOffset} />
+          )}
+
+          <section className={styles.timeline}>
+            <h2>Session events</h2>
+            <div className={styles.timelineScroller}>
+              <SessionTimeline
+                events={events}
+                replayStart={replayStart}
+                currentOffset={currentOffset}
+                tempoDatasourceUid={settings.tempoDatasourceUid}
+                onSeek={(offset) => setSeekRequest({ id: Date.now(), offset })}
+              />
+            </div>
+          </section>
+        </div>
       )}
     </PluginPage>
   );
@@ -154,7 +158,19 @@ const getStyles = (theme: any) => ({
   sessionId: css({ color: theme.colors.text.secondary, fontFamily: theme.typography.fontFamilyMonospace }),
   metadata: css({ color: theme.colors.text.secondary }),
   loading: css({ color: theme.colors.text.secondary, padding: theme.spacing(5), textAlign: 'center' }),
-  timeline: css({ marginTop: theme.spacing(4), h2: { fontSize: theme.typography.h4.fontSize } }),
+  workspace: css({
+    alignItems: 'start',
+    display: 'grid',
+    gap: theme.spacing(2),
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 28%)',
+    [theme.breakpoints.down('lg')]: { gridTemplateColumns: 'minmax(0, 1fr)' },
+  }),
+  timeline: css({ minWidth: 0, h2: { fontSize: theme.typography.h4.fontSize } }),
+  timelineScroller: css({
+    borderTop: `1px solid ${theme.colors.border.weak}`,
+    maxHeight: '70vh',
+    overflowY: 'auto',
+  }),
 });
 
 export default SessionDetailPage;

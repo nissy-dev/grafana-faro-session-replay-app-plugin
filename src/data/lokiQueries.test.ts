@@ -1,4 +1,4 @@
-import { buildReplayQuery, buildSessionLogsQuery, buildSessionsQuery, escapeLogqlString } from './lokiQueries';
+import { buildReplayQuery, buildSessionEventsQuery, buildSessionsQuery, escapeLogqlString } from './lokiQueries';
 
 describe('Loki query builders', () => {
   test('escapes untrusted LogQL string values', () => {
@@ -11,10 +11,15 @@ describe('Loki query builders', () => {
     );
   });
 
-  test('builds replay and correlated log queries without using session ID as a stream label', () => {
+  test('builds replay and correlated event queries without using session ID as a stream label', () => {
     expect(buildReplayQuery('session-1')).toBe(
       '{kind="event"} | json | event_name="faro.session_recording.event" | session_id="session-1"'
     );
-    expect(buildSessionLogsQuery('session-1')).toBe('{kind=~"log|exception"} | json | session_id="session-1"');
+  });
+
+  test('excludes the replay payload from the session event query', () => {
+    expect(buildSessionEventsQuery('session-1')).toBe(
+      '{kind=~"log|exception|event|measurement"} | json | session_id="session-1" | event_name!="faro.session_recording.event"'
+    );
   });
 });

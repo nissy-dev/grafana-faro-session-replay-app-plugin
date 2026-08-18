@@ -8,6 +8,8 @@ export const escapeLogqlString = (value: string): string =>
 
 const fieldEquals = (field: string, value: string): string => `${field}="${escapeLogqlString(value)}"`;
 
+const fieldNotEquals = (field: string, value: string): string => `${field}!="${escapeLogqlString(value)}"`;
+
 export const buildSessionsQuery = (filters: SessionFilters = {}): string => {
   const pipeline = ['{kind="event"}', '| json', `| ${fieldEquals('event_name', RECORDING_STARTED)}`];
 
@@ -32,5 +34,14 @@ export const buildReplayQuery = (sessionId: string): string =>
     `| ${fieldEquals('session_id', sessionId)}`,
   ].join(' ');
 
-export const buildSessionLogsQuery = (sessionId: string): string =>
-  ['{kind=~"log|exception"}', '| json', `| ${fieldEquals('session_id', sessionId)}`].join(' ');
+/**
+ * Every user facing signal of a session: logs, exceptions, custom events and measurements.
+ * Replay events share `kind="event"` but carry the whole rrweb payload, so they are excluded.
+ */
+export const buildSessionEventsQuery = (sessionId: string): string =>
+  [
+    '{kind=~"log|exception|event|measurement"}',
+    '| json',
+    `| ${fieldEquals('session_id', sessionId)}`,
+    `| ${fieldNotEquals('event_name', RECORDING_EVENT)}`,
+  ].join(' ');

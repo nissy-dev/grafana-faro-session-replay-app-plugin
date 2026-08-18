@@ -1,4 +1,7 @@
 export const testIds = {
+  sessionTimeline: {
+    list: 'data-testid session-timeline-list',
+  },
   appConfig: {
     lokiDatasource: 'data-testid ac-loki-datasource',
     tempoDatasource: 'data-testid ac-tempo-datasource',

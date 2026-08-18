@@ -27,12 +27,17 @@ export interface SessionSummary {
   pageUrl?: string;
 }
 
-export interface SessionLog {
+/** A single entry of the session activity feed shown next to the replay. */
+export interface SessionEvent {
   timestamp: number;
+  /** Faro signal kind: `log`, `exception`, `event` or `measurement`. */
   kind: string;
+  /** Event or measurement name, when the signal carries one. */
+  name?: string;
   message: string;
   level?: string;
   traceId?: string;
+  spanId?: string;
   raw: Record<string, unknown>;
 }
 

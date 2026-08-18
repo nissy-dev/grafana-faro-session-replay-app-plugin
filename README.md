@@ -8,8 +8,8 @@ and stored in Loki.
 
 - Search recorded sessions by time, application, environment, user, or session ID.
 - Replay Faro rrweb events with play, pause, seek, speed, inactive-period skipping, and fullscreen controls.
-- Show same-session logs and exceptions alongside playback.
-- Seek playback from a log entry and open related trace IDs in Tempo/Explore.
+- Follow the session's logs, exceptions, custom events, and measurements in a feed beside the player that tracks playback.
+- Seek playback from a feed entry and open related trace IDs in Tempo/Explore.
 - Share a replay using a URL containing the session ID and absolute time range.
 
 ## Development
@@ -73,7 +73,7 @@ JSON lines with these canonical fields:
 
 | Field | Purpose |
 | --- | --- |
-| `kind` | `event`, `log`, or `exception`; intended as a low-cardinality Loki label |
+| `kind` | `event`, `log`, `exception`, or `measurement`; intended as a low-cardinality Loki label |
 | `event_name` | `faro.session_recording.started` or `faro.session_recording.event` |
 | `session_id` | Faro session ID; keep this as a JSON field, not a Loki stream label |
 | `event_data_event` | JSON-encoded `@grafana/rrweb-types` event |
@@ -85,6 +85,12 @@ JSON lines with these canonical fields:
 The session list uses `faro.session_recording.started` markers. Replay detail
 queries `faro.session_recording.event`, splits saturated Loki time windows, parses
 the nested rrweb JSON, removes duplicates, and sorts by rrweb timestamp.
+
+The event feed beside the player queries the same session's `log`, `exception`,
+`event`, and `measurement` lines, excluding the replay payload itself. Rows whose
+line carries a `traceID` link into the configured Tempo data source, so enable
+Faro's `TracingInstrumentation` and forward `faro.receiver`'s traces output to
+Tempo to get those links.
 
 ## Plugin configuration
 

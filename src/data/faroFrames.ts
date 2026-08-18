@@ -1,6 +1,6 @@
 import { EventType, type eventWithTime } from '@grafana/rrweb-types';
 import type { DataFrame, Field } from '@grafana/data';
-import type { ReplayParseResult, SessionLog, SessionSummary } from '../types';
+import type { ReplayParseResult, SessionEvent, SessionSummary } from '../types';
 
 type FaroLine = Record<string, unknown>;
 
@@ -57,14 +57,16 @@ export const parseReplayEvents = (frames: DataFrame[]): ReplayParseResult => {
   };
 };
 
-export const parseSessionLogs = (frames: DataFrame[]): SessionLog[] =>
+export const parseSessionEvents = (frames: DataFrame[]): SessionEvent[] =>
   readRows(frames)
     .map(({ line, timestamp }) => ({
       timestamp: parseTimestamp(line.timestamp) ?? timestamp,
       kind: asString(line.kind) ?? 'log',
-      message: asString(line.message) ?? asString(line.body) ?? '',
+      name: asString(line.event_name) ?? (asString(line.kind) === 'measurement' ? asString(line.type) : undefined),
+      message: describeSignal(line),
       level: asString(line.level),
       traceId: asString(line.traceID) ?? asString(line.trace_id),
+      spanId: asString(line.spanID) ?? asString(line.span_id),
       raw: line,
     }))
     .sort((left, right) => left.timestamp - right.timestamp);
@@ -119,6 +121,26 @@ const parseTimestamp = (value: unknown): number | undefined => {
   }
   return undefined;
 };
+
+/** Faro flattens each signal differently, so the human readable part lives under a different key per kind. */
+const describeSignal = (line: FaroLine): string => {
+  switch (asString(line.kind)) {
+    case 'exception':
+      return [asString(line.type), asString(line.value)].filter(Boolean).join(': ');
+    case 'event':
+      return joinPrefixedValues(line, 'event_data_');
+    case 'measurement':
+      return joinPrefixedValues(line, 'value_');
+    default:
+      return asString(line.message) ?? asString(line.body) ?? '';
+  }
+};
+
+const joinPrefixedValues = (line: FaroLine, prefix: string): string =>
+  Object.entries(line)
+    .filter(([key, value]) => key.startsWith(prefix) && (typeof value === 'string' || typeof value === 'number'))
+    .map(([key, value]) => `${key.slice(prefix.length)}=${value}`)
+    .join(' ');
 
 const joinBrowser = (line: FaroLine): string | undefined => {
   const name = asString(line.browser_name);
